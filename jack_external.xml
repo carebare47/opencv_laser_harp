@@ -1,0 +1,31 @@
+<!DOCTYPE patchbay>
+<patchbay name="jack_external" version="0.4.5">
+ <output-sockets>
+  <socket name="libol 1" client="libol" exclusive="off" type="jack-audio">
+   <plug>out_x</plug>
+   <plug>out_y</plug>
+   <plug>out_r</plug>
+  </socket>
+  <socket name="system" client="system" exclusive="off" type="jack-audio">
+   <plug>capture_1</plug>
+   <plug>capture_2</plug>
+  </socket>
+  <socket name="Midi Through" client="Midi Through" exclusive="off" type="alsa-midi">
+   <plug>Midi Through Port-0</plug>
+  </socket>
+ </output-sockets>
+ <input-sockets>
+  <socket name="Midi Through" client="Midi Through" exclusive="off" type="alsa-midi">
+   <plug>Midi Through Port-0</plug>
+  </socket>
+  <socket name="system 1" client="system" exclusive="off" type="jack-audio">
+   <plug>playback_1</plug>
+   <plug>playback_2</plug>
+  </socket>
+ </input-sockets>
+ <slots/>
+ <cables>
+  <cable input="system 1" output="libol 1" type="jack-audio"/>
+ </cables>
+</patchbay>
+
