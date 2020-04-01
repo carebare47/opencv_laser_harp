@@ -1,0 +1,10 @@
+<launch>
+
+    <arg name="camera_ID" default="2"/>
+
+    <node name="laser_harp_camera_system" pkg="opencv_laser_harp" type="opencv_laser_harp_node" respawn="false" output="screen">
+        <param name="camera_ID" value="$(arg camera_ID)"/>
+    </node>
+
+</launch>
+
