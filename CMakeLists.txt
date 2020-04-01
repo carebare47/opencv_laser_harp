@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(opencv_laser)
+project(opencv_laser_harp)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -14,6 +14,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
 )
+
+# add_subdirectory("/usr/local/lib")
+include_directories(
+    /usr/local/lib
+)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -105,9 +111,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES opencv_laser
-#  CATKIN_DEPENDS cv_bridge image_transport roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  # LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS
+    message_runtime
+    roscpp
+    tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -118,7 +127,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -217,3 +226,4 @@ target_link_libraries(fps_test
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
