@@ -36,11 +36,11 @@ using namespace cv;
 #define MIN_H_BLUE 200
 #define MAX_H_BLUE 300
 
-//int camera_video_number;
+int camera_video_number;
 bool print_tracker_changes = false;
 bool first_loop = true;
 
-
+int max_hue = 90, max_saturation = 255, max_gain = 63, max_exposure = 255;
 int exposure = 120,hue = 46, gain = 16,saturation = 255;
 const int max_value_H = 360/2;
 const int max_value = 255;
@@ -118,6 +118,24 @@ void setV4lParameter(int idx, const char*data, int value){
 	ss.str("");
 }
 
+void Hue(int, void *){
+	setV4lParameter(camera_video_number, "Hue", hue);
+	return;
+}
+void Saturation(int, void *){
+	setV4lParameter(camera_video_number, "Saturation", saturation);
+	return;
+}
+void Gain(int, void *){
+	setV4lParameter(camera_video_number, "Gain", gain);
+	return;
+}
+void Exposure(int, void *){
+	setV4lParameter(camera_video_number, "Exposure", exposure);
+	return;
+}
+
+
 
 void createTrackbars(void){
     /// Create Windows
@@ -131,6 +149,11 @@ void createTrackbars(void){
     createTrackbar("High V", window_detection_name, &high_V, max_value, on_high_V_thresh_trackbar);
     createTrackbar("Average n frames", window_detection_name, &frames_to_average, max_frames_to_average, on_average_frames_trackbar);
     createTrackbar("Pause", window_detection_name, &pause_button, 1, on_pause_button_trackbar);
+
+    createTrackbar("Hue",window_detection_name, &hue, max_hue, Hue);
+    createTrackbar("Saturation",window_detection_name, &saturation, max_saturation, Saturation);
+    createTrackbar("Gain",window_detection_name, &gain, max_gain, Gain);
+    createTrackbar("Exposure",window_detection_name, &exposure, max_exposure, Exposure);
 
 }
 
@@ -152,8 +175,7 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "opencv_laser_node");
 	ros::NodeHandle nh("~");
-	ros::Rate loop_rate(200);
-	int camera_video_number;
+	ros::Rate loop_rate(200);	
 	nh.param("camera_ID", camera_video_number, 0);
   	ROS_INFO_STREAM("camera_ID: " << camera_video_number);
 
