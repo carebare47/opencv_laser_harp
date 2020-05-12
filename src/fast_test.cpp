@@ -57,18 +57,14 @@ const int max_value = 255;
 // Better for night:
 int exposure = 255;
 int hue = 32;
-int gain = 49;
-int saturation = 86;
+int gain = 7;
+int saturation = 16;
 int low_H = 0;
 int high_H = 180;
 int low_S = 0;
 int high_S = 87;
 int low_V = 254;
 int high_V = 255;
-
-
-
-
 
 int audio_threshold = 2000;
 
@@ -256,18 +252,18 @@ void CallBackFuncThreshold(int event, int x, int y, int flags, void *userdata)
 void print_current_values()
 {
 	ROS_INFO_STREAM("VALUES: \nint exposure = " << exposure << ";\n"
-			<< "int hue = " << hue  << ";\n"
-			<< "int gain = " << gain << ";\n"
-			<< "int saturation = " << saturation << ";\n"
-			<< "int low_H = " << low_H << ";\n"
-			<< "int high_H = " << high_H << ";\n"
-			<< "int low_S = " << low_S << ";\n"
-			<< "int high_S = " << high_S << ";\n"
-			<< "int low_V = " << low_V << ";\n"
-			<< "int high_V = " << high_V << ";\n"
-			<< "int frames_to_average = " << frames_to_average << ";\n\nAlso: \n"
-			<< "image_show_magnification: " << image_show_magnification << "\n"
-			<< "pause_button: " << pause_button);
+												<< "int hue = " << hue << ";\n"
+												<< "int gain = " << gain << ";\n"
+												<< "int saturation = " << saturation << ";\n"
+												<< "int low_H = " << low_H << ";\n"
+												<< "int high_H = " << high_H << ";\n"
+												<< "int low_S = " << low_S << ";\n"
+												<< "int high_S = " << high_S << ";\n"
+												<< "int low_V = " << low_V << ";\n"
+												<< "int high_V = " << high_V << ";\n"
+												<< "int frames_to_average = " << frames_to_average << ";\n\nAlso: \n"
+												<< "image_show_magnification: " << image_show_magnification << "\n"
+												<< "pause_button: " << pause_button);
 	setTrackbarPos("Print Parameters", threshold_window_name, 0);
 	print_flag = false;
 }
@@ -278,7 +274,7 @@ Mat get_threshold_image(Mat frame, bool show = true)
 {
 
 	Mat frame_HSV, frame_threshold;
-blur(frame, frame, Size(3, 3));
+	blur(frame, frame, Size(3, 3));
 
 	// Convert from BGR to HSV colorspace
 	cvtColor(frame, frame_HSV, COLOR_BGR2HSV);
@@ -311,36 +307,62 @@ blur(frame, frame, Size(3, 3));
 	return avgImg;
 }
 
-bool compareContourAreas ( vector<Point> contour1, vector<Point> contour2 ) {
-    double i = fabs( contourArea(Mat(contour1)) );
-    double j = fabs( contourArea((contour2)) );
-    return ( i < j );
+bool compareContourAreas(vector<Point> contour1, vector<Point> contour2)
+{
+	double i = fabs(contourArea(Mat(contour1)));
+	double j = fabs(contourArea((contour2)));
+	return (i < j);
 }
-
 
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "opencv_laser_node");
 	ros::NodeHandle nh("~");
 	ros::Rate loop_rate(200);
+	int camera_video_number, width, height, num_frames;
+	double desired_fps;
 	nh.param("camera_ID", camera_video_number, 0);
+	nh.param("width", width, 240);
+	nh.param("height", height, 320);
+	nh.param("desired_fps", desired_fps, 187.0);
 	ROS_INFO_STREAM("camera_ID: " << camera_video_number);
 
 	namedWindow(camera_feed_window_name, CV_WINDOW_AUTOSIZE);
-        namedWindow("Contours", WINDOW_AUTOSIZE);
+	namedWindow("Contours", WINDOW_AUTOSIZE);
 
 	createTrackbars();
-	cv::VideoCapture cap;
-	cap.set(CV_CAP_PROP_FRAME_WIDTH, frame_width);
-	cap.set(CV_CAP_PROP_FRAME_HEIGHT, frame_height);
-	cap.set(CV_CAP_PROP_FPS, 210);
 
-	if (!cap.open(camera_video_number))
+	VideoCapture video(camera_video_number);
+	video.release();
+	if (!video.open(camera_video_number))
 	{
 		cout << "Webcam not connected.\n"
 			 << "Please verify\n";
 		return EXIT_FAILURE;
 	}
+
+	video.set(CV_CAP_PROP_FRAME_WIDTH, width);
+	video.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+	video.set(CV_CAP_PROP_FPS, desired_fps);
+
+	double fps_read = video.get(CV_CAP_PROP_FPS);
+	double width_read = video.get(CV_CAP_PROP_FRAME_WIDTH);
+	double height_read = video.get(CV_CAP_PROP_FRAME_HEIGHT);
+	// If you do not care about backward compatibility
+	// You can use the following instead for OpenCV 3
+	// double fps_read = video.get(CAP_PROP_FPS);
+	ROS_INFO_STREAM("Frames per second using video.get(CV_CAP_PROP_FPS) : " << fps_read);
+	ROS_INFO_STREAM("width : " << width_read);
+	ROS_INFO_STREAM("height: " << height_read);
+	ROS_INFO_STREAM("press 'g'");
+	char ch = 0;
+	while ((ch != 'g') && ros::ok())
+	{
+		ros::spinOnce();
+		loop_rate.sleep();
+		ch = cv::waitKey(1);
+}
+
 
 	// Set parameters in qv4l. Hue, saturation, gain and exposure can be modified with trackbars
 	setV4lParameter(camera_video_number, "White Balance, Automatic", 0);
@@ -352,20 +374,21 @@ int main(int argc, char **argv)
 	setV4lParameter(camera_video_number, "Gain", gain);
 	setV4lParameter(camera_video_number, "Exosure", exposure);
 
-	char ch = 0;
+
 	Mat frame;
-	cap >> frame;
+	video >> frame;
 	setMouseCallback(camera_feed_window_name, CallBackFuncCameraFeed, NULL);
 	setMouseCallback(threshold_window_name, CallBackFuncThreshold, NULL);
 	bool audio_on = false;
-   		ros::Time begin = ros::Time::now();
-   		ros::Time end = ros::Time::now();
+	ros::Time begin = ros::Time::now();
+	ros::Time end = ros::Time::now();
+
 	while ((ch != 'q' && ch != 'Q') && ros::ok())
 	{
-   		end = ros::Time::now();
-		ros::Duration loop_time = end - begin;	
-   		begin = ros::Time::now();
-		double loop_rate_d = 1.0/loop_time.toSec();
+		end = ros::Time::now();
+		ros::Duration loop_time = end - begin;
+		begin = ros::Time::now();
+		double loop_rate_d = 1.0 / loop_time.toSec();
 		ROS_INFO_STREAM("loop time: " << loop_time.toSec());
 		ROS_INFO_STREAM("loop rate: " << loop_rate_d);
 
@@ -385,14 +408,14 @@ int main(int argc, char **argv)
 			break;
 
 		if (pause_button == 0)
-			cap >> frame;
+			video >> frame;
 
 		if (print_button == 1)
 			print_current_values();
 
 		if (clicked)
 		{
-			//cap >> frame;
+			//video >> frame;
 			Mat HSV;
 			ROS_INFO_STREAM("x: " << mX << ". y: " << mY);
 			Mat RGB = frame(Rect(mX, mY, 1, 1));
@@ -419,181 +442,185 @@ int main(int argc, char **argv)
 
 		imshow(threshold_window_name, thresholded_image_large);
 		int count = cv::countNonZero(thresholded_image_large);
-dilate(thresholded_image_large, thresholded_image_large, Mat(), Point(-1, -1), 2, 1, 1);
-
-
-if (!pause_processing){
-
-    Mat gray, hough_in;
-
-    thresholded_image_large.convertTo(gray,CV_8UC3);
-    thresholded_image_large.convertTo(hough_in,CV_8U);
-    Mat img(thresholded_image_large.size(), CV_8U, Scalar(200));
-ROS_INFO_STREAM("thresholded_image_large.type(): " << thresholded_image_large.type());
-    //cvtColor(thresholded_image_large, hough_in, CV_BGR2GRAY);
-
-    Mat canny_output;
-    vector<vector<Point>> contours;
-    vector<Vec4i> hierarchy;
-
-    vector<Vec3f> circles;
-    namedWindow( "hough_in", 1 );
-    imshow( "hough_in", hough_in );
- // HoughCircles(InputArray image, OutputArray circles, int method, double dp, double minDist, double param1=100, double param2=100, int minRadius=0, int maxRadius=0 )
-    HoughCircles(hough_in, circles, CV_HOUGH_GRADIENT, 1, 6, 30, 6, 0, 6);
-ROS_INFO_STREAM("img.type(): " << img.type());
-ROS_INFO_STREAM("hough_in.type(): " << hough_in.type());
-ROS_INFO_STREAM("gray.type(): " << gray.type());
-ROS_INFO_STREAM("thresholded_image_large.type(): " << thresholded_image_large.type());
-ROS_INFO_STREAM("circles.size(): " << circles.size());
-
-    for( size_t i = 0; i < circles.size(); i++ )
-    {
-         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-         int radius = cvRound(circles[i][2]);
-         // draw the circle center
-         circle( img, center, 3, Scalar(0,255,0), -1, 8, 0 );
-         // draw the circle outline
-         circle( img, center, radius, Scalar(0,0,255), 3, 8, 0 );
-    }
-if (circles.size() > 0){
-    namedWindow( "circles", 1 );
-    imshow( "circles", img );
-}
-    // detect edges using canny
-    Canny(gray, canny_output, 50, 150, 3);
-
-    // find contours
-    findContours(canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
-    for(Vec4i example : hierarchy)
-    {
-        ROS_INFO_STREAM("hierarchy: " << example);
-    }
-
-
-	if ( !contours.empty() && !hierarchy.empty() ) {
-
-	    // loop through the contours/hierarchy
-	    for ( int i=0; i<contours.size(); i++ ) {
-
-		// look for hierarchy[i][3]!=-1, ie hole boundaries
-		if ( hierarchy[i][3] == -1 ) {
-			 contours.erase(contours.begin()+i);
-
-//			contours.erase(contours[i]);
-		}
-	    }
-	}
-//    cv::waitKey();
-
-Mat morphy_contours;
-Mat structuringElement = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
-morphologyEx( canny_output, morphy_contours, MORPH_CLOSE, structuringElement );
-        namedWindow( "morphy_contours", 1 );
-    imshow( "morphy_contours", morphy_contours );
-
-    // sort contours
-    if (contours.size() > 0){
-        sort(contours.begin(), contours.end(), compareContourAreas);
-
-        // grab contours
-        vector<Point> biggestContour = contours[contours.size()-1];
-        vector<Point> smallestContour = contours[0];
-        ROS_INFO_STREAM("biggestContour.area: " << contourArea(biggestContour, false));
-        ROS_INFO_STREAM("smallestContour.area: " << contourArea(smallestContour, false));
-    }
-
-    //for( int n = 0; n< contours.size(); n++ )
-   // {
-      //   double Area = contourArea( contours[i],false);  
-    //       if(condition)
-  //         contours.erase(contours[n]);
-//    }
-
-    
-    vector<vector<Point>> area_filtered_contours;
-    for (int i = 0; i < contours.size(); i++){
-        if ((contourArea(contours[i])) > min_area_threshold){
-            area_filtered_contours.push_back(contours[i]);
-        }
-    }
-
-    // get the moments
-    vector<Moments> mu(area_filtered_contours.size());
-    for (int i = 0; i < area_filtered_contours.size(); i++)
-    {
-        mu[i] = moments(area_filtered_contours[i], false);
-    }
-
-    // get the centroid of figures.
-    vector<Point2f> mc(area_filtered_contours.size());
-    for (int i = 0; i < area_filtered_contours.size(); i++)
-    {
-        mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
-    }
-
-    // draw contours
-    Mat drawing(canny_output.size(), CV_8UC3, Scalar(255, 255, 255));
-    for (int i = 0; i < area_filtered_contours.size(); i++)
-    {
-        Scalar color = Scalar(167, 151, 0); // B G R values
-        drawContours(drawing, area_filtered_contours, i, color, 2, 8, hierarchy, 0, Point());
-        circle(drawing, mc[i], 4, color, -1, 8, 0);
-    }
-
-    vector<Point> joined;
-    for (size_t i=0; i<area_filtered_contours.size(); i++) {
-          joined.insert(joined.end(), area_filtered_contours[i].begin(), area_filtered_contours[i].end());
-    }
-    // boundingRect(joined);
-
-    Mat rotated_points(canny_output.size(), CV_8UC3, Scalar(255, 255, 255));
-    RotatedRect largest_rectangle;
-    if (!joined.empty()){
-        largest_rectangle = RotatedRect(minAreaRect(joined));
-        ROS_INFO_STREAM("largest_rectangle.angle: " << largest_rectangle.angle);
-        Point2f rect_points[4]; largest_rectangle.points( rect_points );
-        //rectangle( drawing, rect_points[0], largest_rectangle.br(), color, 2, 8, 0 );
-        for( int j = 0; j < 4; j++ ){
-            Scalar color = Scalar(50, 151, 200); // B G R values
-            line( drawing, rect_points[j], rect_points[(j+1)%4], color, 1, 8 );
-         }
-    }
-
-        ROS_INFO_STREAM("contours.size(): " << contours.size());
-        ROS_INFO_STREAM("area_filtered_contours.size(): " << area_filtered_contours.size());
-
-//    if (rotated_points.size() == 14){
-//    Mat rot_mat = getRotationMatrix2D( largest_rectangle.center, largest_rectangle.angle, 1.0 );
-//}
-    Mat rot_mat = getRotationMatrix2D( largest_rectangle.center, largest_rectangle.angle, 1.0 );
-    warpAffine(drawing, rotated_points, rot_mat, canny_output.size());
-
-    // show the resultant image
-    namedWindow("Rotation_Corrected", WINDOW_AUTOSIZE);
-    imshow("Rotation_Corrected", rotated_points);
-
-
-
-    // show the resultant image
-    namedWindow("Contours", WINDOW_AUTOSIZE);
-    imshow("Contours", drawing);
-
-
-		ROS_INFO_STREAM("White Pixels: " << count);
-		if ((count < audio_threshold) && audio_on)
+		dilate(thresholded_image_large, thresholded_image_large, Mat(), Point(-1, -1), 2, 1, 1);
+		if (!pause_processing)
 		{
-			//system("canberra-gtk-play -f /home/user/tone.wav");
-			std::string sp_test = "speaker-test -t sine -f ";
-			std::string sp_args = " -c 2 -s 1 &";
-			std::string result;
+			Mat gray, hough_in;
 
-			result = sp_test + std::to_string(count * 0.044) + sp_args;
-			system(result.c_str());
-			//system("mplayer /home/user/tone.wav &");
-			//usleep(2*1000*1000);
+			thresholded_image_large.convertTo(gray, CV_8UC3);
+			thresholded_image_large.convertTo(hough_in, CV_8U);
+			Mat img(thresholded_image_large.size(), CV_8U, Scalar(200));
+			ROS_INFO_STREAM("thresholded_image_large.type(): " << thresholded_image_large.type());
+			//cvtColor(thresholded_image_large, hough_in, CV_BGR2GRAY);
+
+			Mat canny_output;
+			vector<vector<Point>> contours;
+			vector<Vec4i> hierarchy;
+
+			vector<Vec3f> circles;
+			namedWindow("hough_in", 1);
+			imshow("hough_in", hough_in);
+			// HoughCircles(InputArray image, OutputArray circles, int method, double dp, double minDist, double param1=100, double param2=100, int minRadius=0, int maxRadius=0 )
+			HoughCircles(hough_in, circles, CV_HOUGH_GRADIENT, 1, 6, 30, 6, 0, 6);
+			ROS_INFO_STREAM("img.type(): " << img.type());
+			ROS_INFO_STREAM("hough_in.type(): " << hough_in.type());
+			ROS_INFO_STREAM("gray.type(): " << gray.type());
+			ROS_INFO_STREAM("thresholded_image_large.type(): " << thresholded_image_large.type());
+			ROS_INFO_STREAM("circles.size(): " << circles.size());
+
+			for (size_t i = 0; i < circles.size(); i++)
+			{
+				Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+				int radius = cvRound(circles[i][2]);
+				// draw the circle center
+				circle(img, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+				// draw the circle outline
+				circle(img, center, radius, Scalar(0, 0, 255), 3, 8, 0);
+			}
+			if (circles.size() > 0)
+			{
+				namedWindow("circles", 1);
+				imshow("circles", img);
+			}
+			// detect edges using canny
+			Canny(gray, canny_output, 50, 150, 3);
+
+			// find contours
+			findContours(canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point(0, 0));
+			for (Vec4i example : hierarchy)
+			{
+				ROS_INFO_STREAM("hierarchy: " << example);
+			}
+
+			if (!contours.empty() && !hierarchy.empty())
+			{
+
+				// loop through the contours/hierarchy
+				for (int i = 0; i < contours.size(); i++)
+				{
+
+					// look for hierarchy[i][3]!=-1, ie hole boundaries
+					if (hierarchy[i][3] == -1)
+					{
+						contours.erase(contours.begin() + i);
+
+						//			contours.erase(contours[i]);
+					}
+				}
+			}
+			//    cv::waitKey();
+
+			Mat morphy_contours;
+			Mat structuringElement = getStructuringElement(MORPH_ELLIPSE, Size(10, 10));
+			morphologyEx(canny_output, morphy_contours, MORPH_CLOSE, structuringElement);
+			namedWindow("morphy_contours", 1);
+			imshow("morphy_contours", morphy_contours);
+
+			// sort contours
+			if (contours.size() > 0)
+			{
+				sort(contours.begin(), contours.end(), compareContourAreas);
+
+				// grab contours
+				vector<Point> biggestContour = contours[contours.size() - 1];
+				vector<Point> smallestContour = contours[0];
+				ROS_INFO_STREAM("biggestContour.area: " << contourArea(biggestContour, false));
+				ROS_INFO_STREAM("smallestContour.area: " << contourArea(smallestContour, false));
+			}
+
+			//for( int n = 0; n< contours.size(); n++ )
+			// {
+			//   double Area = contourArea( contours[i],false);
+			//       if(condition)
+			//         contours.erase(contours[n]);
+			//    }
+
+			vector<vector<Point>> area_filtered_contours;
+			for (int i = 0; i < contours.size(); i++)
+			{
+				if ((contourArea(contours[i])) > min_area_threshold)
+				{
+					area_filtered_contours.push_back(contours[i]);
+				}
+			}
+
+			// get the moments
+			vector<Moments> mu(area_filtered_contours.size());
+			for (int i = 0; i < area_filtered_contours.size(); i++)
+			{
+				mu[i] = moments(area_filtered_contours[i], false);
+			}
+
+			// get the centroid of figures.
+			vector<Point2f> mc(area_filtered_contours.size());
+			for (int i = 0; i < area_filtered_contours.size(); i++)
+			{
+				mc[i] = Point2f(mu[i].m10 / mu[i].m00, mu[i].m01 / mu[i].m00);
+			}
+
+			// draw contours
+			Mat drawing(canny_output.size(), CV_8UC3, Scalar(255, 255, 255));
+			for (int i = 0; i < area_filtered_contours.size(); i++)
+			{
+				Scalar color = Scalar(167, 151, 0); // B G R values
+				drawContours(drawing, area_filtered_contours, i, color, 2, 8, hierarchy, 0, Point());
+				circle(drawing, mc[i], 4, color, -1, 8, 0);
+			}
+
+			vector<Point> joined;
+			for (size_t i = 0; i < area_filtered_contours.size(); i++)
+			{
+				joined.insert(joined.end(), area_filtered_contours[i].begin(), area_filtered_contours[i].end());
+			}
+			// boundingRect(joined);
+
+			Mat rotated_points(canny_output.size(), CV_8UC3, Scalar(255, 255, 255));
+			RotatedRect largest_rectangle;
+			if (!joined.empty())
+			{
+				largest_rectangle = RotatedRect(minAreaRect(joined));
+				ROS_INFO_STREAM("largest_rectangle.angle: " << largest_rectangle.angle);
+				Point2f rect_points[4];
+				largest_rectangle.points(rect_points);
+				//rectangle( drawing, rect_points[0], largest_rectangle.br(), color, 2, 8, 0 );
+				for (int j = 0; j < 4; j++)
+				{
+					Scalar color = Scalar(50, 151, 200); // B G R values
+					line(drawing, rect_points[j], rect_points[(j + 1) % 4], color, 1, 8);
+				}
+			}
+
+			ROS_INFO_STREAM("contours.size(): " << contours.size());
+			ROS_INFO_STREAM("area_filtered_contours.size(): " << area_filtered_contours.size());
+
+			//    if (rotated_points.size() == 14){
+			//    Mat rot_mat = getRotationMatrix2D( largest_rectangle.center, largest_rectangle.angle, 1.0 );
+			//}
+			Mat rot_mat = getRotationMatrix2D(largest_rectangle.center, largest_rectangle.angle, 1.0);
+			warpAffine(drawing, rotated_points, rot_mat, canny_output.size());
+
+			// show the resultant image
+			namedWindow("Rotation_Corrected", WINDOW_AUTOSIZE);
+			imshow("Rotation_Corrected", rotated_points);
+
+			// show the resultant image
+			namedWindow("Contours", WINDOW_AUTOSIZE);
+			imshow("Contours", drawing);
+
+			ROS_INFO_STREAM("White Pixels: " << count);
+			if ((count < audio_threshold) && audio_on)
+			{
+				//system("canberra-gtk-play -f /home/user/tone.wav");
+				std::string sp_test = "speaker-test -t sine -f ";
+				std::string sp_args = " -c 2 -s 1 &";
+				std::string result;
+
+				result = sp_test + std::to_string(count * 0.044) + sp_args;
+				system(result.c_str());
+				//system("mplayer /home/user/tone.wav &");
+				//usleep(2*1000*1000);
+			}
 		}
-}
 		ros::spinOnce();
 		loop_rate.sleep();
 		ch = cv::waitKey(1);

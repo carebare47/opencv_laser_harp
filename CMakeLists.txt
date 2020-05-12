@@ -146,6 +146,9 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/threshold.cpp)
 add_executable(fps_test src/fps_test.cpp)
+add_executable(fast_test src/fast_test.cpp)
+add_executable(multi_blob src/multi_blob.cpp)
+add_executable(offline_contours src/offline_contours.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -170,7 +173,20 @@ target_link_libraries(fps_test
   ${OpenCV_LIBRARIES}
 )
 
+target_link_libraries(fast_test
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
+target_link_libraries(multi_blob
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(offline_contours
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
 #############
 ## Install ##

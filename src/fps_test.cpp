@@ -54,6 +54,8 @@ int main(int argc, char** argv)
     // You can use the following instead for OpenCV 3
     // double fps_read = video.get(CAP_PROP_FPS);
     cout << "Frames per second using video.get(CV_CAP_PROP_FPS) : " << fps_read << endl;
+    ROS_INFO_STREAM("Frames per second using video.get(CV_CAP_PROP_FPS) : " << fps_read);
+     return 0;
     
     // Start and end times
     time_t start, end;

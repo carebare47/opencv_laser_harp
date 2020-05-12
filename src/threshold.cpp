@@ -51,21 +51,25 @@ int frame_height = 320;
 
 float corner_fraction = 9.0/10.0;
 
+int max_hue = 90, max_saturation = 255, max_gain = 63, max_exposure = 255;
+const int max_value_H = 360/2;
+const int max_value = 255;
+
+
+
 // Mid-Day & sunny:
-int exposure = 81, hue = 90, gain = 7, saturation = 255;
-int low_H = 0, high_H= 180, low_S= 0, high_S= 16, low_V= 254, high_V= 255;
+//int exposure = 81, hue = 90, gain = 7, saturation = 255;
+//int low_H = 0, high_H= 180, low_S= 0, high_S= 16, low_V= 254, high_V= 255;
 // Mid-Day & reasonable:
 //int exposure = 67, hue = 58, gain = 11, saturation = 255;
 //int low_H = 0, high_H= 180, low_S= 0, high_S= 158, low_V= 254, high_V= 255;
 // Better for night: 
-// int exposure = 120,hue = 46, gain = 16,saturation = 255;
-// int low_H = 0, low_S = 0, low_V = 254;
-// int high_H = max_value_H, high_S = 68, high_V = max_value;	
+int exposure = 120,hue = 46, gain = 16,saturation = 255;
+int low_H = 0, low_S = 0, low_V = 254;
+int high_H = max_value_H, high_S = 68, high_V = max_value;	
 
 int audio_threshold = 2000;
-int max_hue = 90, max_saturation = 255, max_gain = 63, max_exposure = 255;
-const int max_value_H = 360/2;
-const int max_value = 255;
+
 const String camera_feed_window_name = "Video Capture";
 const String threshold_window_name = "Laser Detection";
 int pause_button = 0;
